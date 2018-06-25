@@ -4,10 +4,9 @@ use pxl::*;
 
 const WIDTH: i32 = 512;
 const HEIGHT: i32 = 512;
-const LARGEST_PIXELS_INDEX: i32 = WIDTH * HEIGHT - 1;
 
-const INCR_DOT: i32 = WIDTH / 20;
-const INCR_COLOR: f32 = 0.1;
+const INCR_DOT: i32 = WIDTH / 50;
+const INCR_COLOR: f32 = 0.05;
 
 #[derive(Copy, Clone)]
 struct Dot {
@@ -108,10 +107,11 @@ fn clampf(val: f32, min: f32, max: f32) -> f32 {
 }
 
 fn index_of(x: i32, y: i32) -> Option<usize> {
-    let index = y * WIDTH + x;
-    match index {
-        0 ... LARGEST_PIXELS_INDEX => Some(index as usize),
-        _ => None,
+    if x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT {
+        None
+    } else {
+        let index = y * WIDTH + x;
+        Some(index as usize)
     }
 }
 
