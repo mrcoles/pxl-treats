@@ -89,8 +89,8 @@ impl Daisy {
         let dot = self.dot;
         let color = Pixel { red: 1.0 - self.red, green: 1.0 - self.green, blue: 0.5, alpha: 1.0 };
 
-        for dx in -5..5 {
-            for dy in -5..5 {
+        for dx in -5..=5 {
+            for dy in -5..=5 {
                 if let Some(i) = index_of(dot.x + dx, dot.y + dy) {
                     pixels[i] = color;
                 }
