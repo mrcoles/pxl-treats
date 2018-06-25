@@ -38,7 +38,7 @@ impl Program for Daisy {
             *pixel = Pixel {
                 red: self.red,
                 green: self.green,
-                blue: (i as f32 * 0.01 + 1.0) % 1.0,
+                blue: (i as f32 * 0.05 + 1.0) % 1.0,
                 alpha: 1.0
             };
         }
@@ -87,13 +87,12 @@ impl Program for Daisy {
 impl Daisy {
     fn draw_dot(&self, pixels: &mut [Pixel]) {
         let dot = self.dot;
+        let color = Pixel { red: 1.0 - self.red, green: 1.0 - self.green, blue: 0.5, alpha: 1.0 };
 
         for dx in -5..5 {
             for dy in -5..5 {
                 if let Some(i) = index_of(dot.x + dx, dot.y + dy) {
-                    pixels[i] = Pixel {
-                        red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0
-                    }
+                    pixels[i] = color;
                 }
             }
         }
