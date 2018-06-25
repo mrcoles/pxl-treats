@@ -1,0 +1,7 @@
+[package]
+name = "pxl-jam"
+version = "0.1.0"
+authors = ["Peter Coles <peter@mrcoles.com>"]
+
+[dependencies]
+pxl="0.0.8"
