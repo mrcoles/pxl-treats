@@ -37,30 +37,14 @@ impl Program for Daisy {
         let mut green_dir = 0;
 
         for event in events {
-            if let Event::Button {
-                state: ButtonState::Pressed,
-                button: Button::Up
-            } = event {
-                // up
-                red_dir = 1;
-            } else if let Event::Button {
-                state: ButtonState::Pressed,
-                button: Button::Down
-            } = event {
-                // down
-                red_dir = -1;
-            } else if let Event::Button {
-                state: ButtonState::Pressed,
-                button: Button::Right
-            } = event {
-                // up
-                green_dir = 1;
-            } else if let Event::Button {
-                state: ButtonState::Pressed,
-                button: Button::Left
-            } = event {
-                // down
-                green_dir = -1;
+            if let Event::Button { state: ButtonState::Pressed, button } = event {
+                match button {
+                    Button::Down => red_dir = -1,
+                    Button::Up => red_dir = 1,
+                    Button::Left => green_dir = -1,
+                    Button::Right => green_dir = 1,
+                    _ => {},
+                };
             }
         }
 
