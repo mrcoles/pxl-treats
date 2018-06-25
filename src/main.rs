@@ -12,8 +12,8 @@ struct Daisy {
 impl Program for Daisy {
     fn new() -> Daisy {
         Daisy {
-            red: 1.0,
-            green: 0.0,
+            red: 0.5,
+            green: 0.5,
         }
     }
 
@@ -48,18 +48,18 @@ impl Program for Daisy {
             }
         }
 
-        self.red += INCR * (red_dir as f32);
-        self.green += INCR * (green_dir as f32);
+        self.red = clampf(self.red + INCR * (red_dir as f32), 0.0, 1.0);
+        self.green = clampf(self.green + INCR * (green_dir as f32), 0.0, 1.0);
     }
 }
 
-// helpers
+// ## helpers
 
-// TODO - clamp
+fn clampf(val: f32, min: f32, max: f32) -> f32 {
+    val.min(max).max(min)
+}
 
-
-
-//
+// ## main
 
 fn main() {
     pxl::run::<Daisy>();
