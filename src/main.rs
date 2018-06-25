@@ -2,9 +2,12 @@ extern crate pxl;
 
 use pxl::*;
 
-const INCR: f32 = 0.1;
 const WIDTH: i32 = 512;
 const HEIGHT: i32 = 512;
+const LARGEST_PIXELS_INDEX: i32 = WIDTH * HEIGHT - 1;
+
+const INCR_DOT: i32 = WIDTH / 20;
+const INCR_COLOR: f32 = 0.1;
 
 #[derive(Copy, Clone)]
 struct Dot {
@@ -28,7 +31,7 @@ impl Program for Daisy {
     }
 
     fn dimensions(&self) -> (usize, usize) {
-        (512, 512)
+        (WIDTH as usize, HEIGHT as usize)
     }
 
     fn render(&mut self, pixels: &mut [Pixel]) {
@@ -47,21 +50,38 @@ impl Program for Daisy {
     fn tick(&mut self, events: &[Event]) {
         let mut red_dir = 0;
         let mut green_dir = 0;
+        let mut dot_dx = 0;
+        let mut dot_dy = 0;
 
         for event in events {
             if let Event::Button { state: ButtonState::Pressed, button } = event {
                 match button {
-                    Button::Up => red_dir = 1,
-                    Button::Down => red_dir = -1,
-                    Button::Left => green_dir = -1,
-                    Button::Right => green_dir = 1,
+                    Button::Up => {
+                        red_dir = 1;
+                        dot_dy = -1;
+                    }
+                    Button::Down => {
+                        red_dir = -1;
+                        dot_dy = 1;
+                    }
+                    Button::Left => {
+                        green_dir = -1;
+                        dot_dx = -1;
+                    }
+                    Button::Right => {
+                        green_dir = 1;
+                        dot_dx = 1;
+                    }
                     _ => {},
                 };
             }
         }
 
-        self.red = clampf(self.red + INCR * (red_dir as f32), 0.0, 1.0);
-        self.green = clampf(self.green + INCR * (green_dir as f32), 0.0, 1.0);
+        self.dot.x = (self.dot.x + dot_dx * INCR_DOT).max(0).min(WIDTH - 1);
+        self.dot.y = (self.dot.y + dot_dy * INCR_DOT).max(0).min(HEIGHT - 1);
+
+        self.red = clampf(self.red + INCR_COLOR * (red_dir as f32), 0.0, 1.0);
+        self.green = clampf(self.green + INCR_COLOR * (green_dir as f32), 0.0, 1.0);
     }
 }
 
@@ -71,9 +91,10 @@ impl Daisy {
 
         for dx in -5..5 {
             for dy in -5..5 {
-                let i = index_of(dot.x + dx, dot.y + dy);
-                pixels[i] = Pixel {
-                    red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0
+                if let Some(i) = index_of(dot.x + dx, dot.y + dy) {
+                    pixels[i] = Pixel {
+                        red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0
+                    }
                 }
             }
         }
@@ -86,8 +107,12 @@ fn clampf(val: f32, min: f32, max: f32) -> f32 {
     val.min(max).max(min)
 }
 
-fn index_of(x: i32, y: i32) -> usize {
-    (y * WIDTH + x) as usize
+fn index_of(x: i32, y: i32) -> Option<usize> {
+    let index = y * WIDTH + x;
+    match index {
+        0 ... LARGEST_PIXELS_INDEX => Some(index as usize),
+        _ => None,
+    }
 }
 
 // ## main
