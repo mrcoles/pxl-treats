@@ -189,18 +189,18 @@ impl Renderable for Target {
     }
 }
 
-// Daisy
+// Treats
 
-struct Daisy {
+struct Treats {
     red: f32,
     green: f32,
     dot: Dot,
     target: Target
 }
 
-impl Program for Daisy {
-    fn new() -> Daisy {
-        Daisy {
+impl Program for Treats {
+    fn new() -> Treats {
+        Treats {
             red: 0.5,
             green: 0.5,
             dot: Dot::new(WIDTH / 2, HEIGHT / 2),
@@ -292,7 +292,7 @@ impl Program for Daisy {
     }
 }
 
-impl Daisy {
+impl Treats {
     fn draw(&self, pixels: &mut [Pixel], color: Pixel, r: &Renderable) {
         let width = r.get_width();
         let height = r.get_height();
@@ -337,5 +337,5 @@ fn index_of(x: i32, y: i32) -> Option<usize> {
 // ## main
 
 fn main() {
-    pxl::run::<Daisy>();
+    pxl::run::<Treats>();
 }
