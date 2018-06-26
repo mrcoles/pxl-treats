@@ -8,10 +8,20 @@ use rand::Rng;
 
 const WIDTH: i32 = 512;
 const HEIGHT: i32 = 512;
+
+const WALL_OFFSET: i32 = 5;
+const MIN_X: i32 = WALL_OFFSET;
+const MAX_X: i32 = WIDTH - WALL_OFFSET;
+const MIN_Y: i32 = WALL_OFFSET;
+const MAX_Y: i32 = HEIGHT - WALL_OFFSET;
+
 const DOT_WIDTH: i32 = 11;
 const DOT_HEIGHT: i32 = 11;
 
-const INCR_DOT: i32 = WIDTH / 40;
+const DOT_MAX_VELOCITY: f32 = 10.0;
+const DOT_UP_DELTA: f32 = 0.15;
+const DOT_DOWN_DELTA: f32 = 0.05;
+
 const INCR_COLOR: f32 = 0.05;
 
 // const BLACK: Pixel = Pixel { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 };
@@ -61,10 +71,10 @@ impl Bounds {
 struct Dot {
     x: i32,
     y: i32,
-    y_dir: i32,
-    y_dir_ticks: i32,
     x_dir: i32,
-    x_dir_ticks: i32,
+    dx: f32,
+    y_dir: i32,
+    dy: f32,
 }
 
 impl Renderable for Dot {
@@ -88,28 +98,55 @@ impl Dot {
             x: x,
             y: y,
             y_dir: 0,
-            y_dir_ticks: 0,
+            dy: 0.0,
             x_dir: 0,
-            x_dir_ticks: 0,
+            dx: 0.0,
         }
     }
 
     fn step(&mut self) {
+
+        // x direction
+        let x_dirf = self.x_dir as f32;
+        let is_x_decel = self.x_dir == 0 || x_dirf * self.dx < 0.0;
+        let is_x_accel = self.x_dir != 0;
+
+        if is_x_decel && self.dx != 0.0 {
+            self.dx -= (self.dx / self.dx.abs()) * DOT_DOWN_DELTA;
+        }
+        if is_x_accel {
+            self.dx += x_dirf * DOT_UP_DELTA;
+        }
         if self.x_dir != 0 {
-            self.x_dir_ticks += 1;
-            self.x = clampi(
-                self.x + self.x_dir * INCR_DOT.min(1 + self.x_dir_ticks / 10),
-                5,
-                WIDTH - 5 - 1
-            );
+            self.dx = x_dirf * (self.dx * x_dirf).min(DOT_MAX_VELOCITY);
+        }
+
+        self.x = clampi(self.x + (self.dx as i32), MIN_X, MAX_X);
+
+        // y direction
+        let y_dirf = self.y_dir as f32;
+        let is_y_decel = self.y_dir == 0 || y_dirf * self.dy < 0.0;
+        let is_y_accel = self.y_dir != 0;
+
+        if is_y_decel && self.dy != 0.0 {
+            self.dy -= (self.dy / self.dy.abs()) * DOT_DOWN_DELTA;
+        }
+        if is_y_accel {
+            self.dy += y_dirf * DOT_UP_DELTA;
         }
         if self.y_dir != 0 {
-            self.y_dir_ticks += 1;
-            self.y = clampi(
-                self.y + self.y_dir * INCR_DOT.min(1 + self.y_dir_ticks / 10),
-                5,
-                HEIGHT - 5 - 1
-            );
+            self.dy = y_dirf * (self.dy * y_dirf).min(DOT_MAX_VELOCITY);
+        }
+
+        self.y = clampi(self.y + (self.dy as i32), MIN_Y, MAX_Y);
+
+        // zero when hit wall
+        if self.x == MIN_X && self.dx < 0.0 || self.x == MAX_X && self.dx > 0.0 {
+            self.dx = 0.0;
+        }
+
+        if self.y == MIN_Y && self.dy < 0.0 || self.y == MAX_Y && self.dy > 0.0 {
+            self.dy = 0.0;
         }
     }
 }
@@ -124,8 +161,8 @@ struct Target {
 
 impl Target {
     fn new() -> Target {
-        let x = rand::thread_rng().gen_range(5, WIDTH - 5);
-        let y = rand::thread_rng().gen_range(5, HEIGHT - 5);
+        let x = rand::thread_rng().gen_range(MIN_X, MAX_X);
+        let y = rand::thread_rng().gen_range(MIN_Y, MAX_Y);
 
         Target {
             x: x,
@@ -204,10 +241,8 @@ impl Program for Daisy {
 
                         if state == &ButtonState::Released && self.dot.y_dir == -1 {
                             self.dot.y_dir = 0;
-                            self.dot.y_dir_ticks = 0;
                         } else if state == &ButtonState::Pressed && self.dot.y_dir != -1 {
                             self.dot.y_dir = -1;
-                            self.dot.y_dir_ticks = 0;
                         }
                     }
                     Button::Down => {
@@ -215,10 +250,8 @@ impl Program for Daisy {
 
                         if state == &ButtonState::Released && self.dot.y_dir == 1 {
                             self.dot.y_dir = 0;
-                            self.dot.y_dir_ticks = 0;
                         } else if state == &ButtonState::Pressed && self.dot.y_dir != 1 {
                             self.dot.y_dir = 1;
-                            self.dot.y_dir_ticks = 0;
                         }
                     }
                     Button::Left => {
@@ -226,10 +259,8 @@ impl Program for Daisy {
 
                         if state == &ButtonState::Released && self.dot.x_dir == -1 {
                             self.dot.x_dir = 0;
-                            self.dot.x_dir_ticks = 0;
                         } else if state == &ButtonState::Pressed && self.dot.x_dir != -1 {
                             self.dot.x_dir = -1;
-                            self.dot.x_dir_ticks = 0;
                         }
                     }
                     Button::Right => {
@@ -237,10 +268,8 @@ impl Program for Daisy {
 
                         if state == &ButtonState::Released && self.dot.x_dir == 1 {
                             self.dot.x_dir = 0;
-                            self.dot.x_dir_ticks = 0;
                         } else if state == &ButtonState::Pressed && self.dot.x_dir != 1 {
                             self.dot.x_dir = 1;
-                            self.dot.x_dir_ticks = 0;
                         }
                     }
                     _ => {},
