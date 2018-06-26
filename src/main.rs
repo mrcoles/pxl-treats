@@ -19,7 +19,7 @@ const DOT_WIDTH: i32 = 11;
 const DOT_HEIGHT: i32 = 11;
 
 const DOT_MAX_VELOCITY: f32 = 10.0;
-const DOT_UP_DELTA: f32 = 0.15;
+const DOT_UP_DELTA: f32 = 0.25;
 const DOT_DOWN_DELTA: f32 = 0.05;
 
 const INCR_COLOR: f32 = 0.05;
@@ -75,6 +75,8 @@ struct Dot {
     dx: f32,
     y_dir: i32,
     dy: f32,
+    width: i32,
+    height: i32,
 }
 
 impl Renderable for Dot {
@@ -85,10 +87,10 @@ impl Renderable for Dot {
         self.y
     }
     fn get_width(&self) -> i32 {
-        DOT_WIDTH
+        self.width
     }
     fn get_height(&self) -> i32 {
-        DOT_HEIGHT
+        self.height
     }
 }
 
@@ -101,53 +103,54 @@ impl Dot {
             dy: 0.0,
             x_dir: 0,
             dx: 0.0,
+            width: DOT_WIDTH,
+            height: DOT_HEIGHT,
+        }
+    }
+
+    fn grow(&mut self) {
+        self.width = ((self.width as f32) * 1.5) as i32;
+        self.height = ((self.height as f32) * 1.5) as i32;
+
+        if self.width >= WIDTH / 2 || self.height >= HEIGHT / 2 {
+            self.width = DOT_WIDTH;
+            self.height = DOT_HEIGHT;
         }
     }
 
     fn step(&mut self) {
+        let (x, dx) = self._delta(self.x, self.dx, self.x_dir, MIN_X, MAX_X);
+        let (y, dy) = self._delta(self.y, self.dy, self.y_dir, MIN_Y, MAX_Y);
 
-        // x direction
-        let x_dirf = self.x_dir as f32;
-        let is_x_decel = self.x_dir == 0 || x_dirf * self.dx < 0.0;
-        let is_x_accel = self.x_dir != 0;
+        self.y = y;
+        self.dy = dy;
+        self.x = x;
+        self.dx = dx;
+    }
 
-        if is_x_decel && self.dx != 0.0 {
-            self.dx -= (self.dx / self.dx.abs()) * DOT_DOWN_DELTA;
-        }
-        if is_x_accel {
-            self.dx += x_dirf * DOT_UP_DELTA;
-        }
-        if self.x_dir != 0 {
-            self.dx = x_dirf * (self.dx * x_dirf).min(DOT_MAX_VELOCITY);
-        }
+    fn _delta(&self, mut pos: i32, mut delta: f32, dir: i32, min_val: i32, max_val: i32) -> (i32, f32) {
+        let dirf = dir as f32;
+        let is_decel = dir == 0 || dirf * delta < 0.0;
+        let is_accel = dir != 0;
 
-        self.x = clampi(self.x + (self.dx as i32), MIN_X, MAX_X);
-
-        // y direction
-        let y_dirf = self.y_dir as f32;
-        let is_y_decel = self.y_dir == 0 || y_dirf * self.dy < 0.0;
-        let is_y_accel = self.y_dir != 0;
-
-        if is_y_decel && self.dy != 0.0 {
-            self.dy -= (self.dy / self.dy.abs()) * DOT_DOWN_DELTA;
+        if is_decel && delta != 0.0 {
+            delta -= (delta / delta.abs()) * DOT_DOWN_DELTA;
         }
-        if is_y_accel {
-            self.dy += y_dirf * DOT_UP_DELTA;
+        if is_accel {
+            delta += dirf * DOT_UP_DELTA;
         }
-        if self.y_dir != 0 {
-            self.dy = y_dirf * (self.dy * y_dirf).min(DOT_MAX_VELOCITY);
+        if dir != 0 {
+            delta = dirf * (delta * dirf).min(DOT_MAX_VELOCITY);
         }
 
-        self.y = clampi(self.y + (self.dy as i32), MIN_Y, MAX_Y);
+        pos = clampi(pos + (delta as i32), min_val, max_val);
 
         // zero when hit wall
-        if self.x == MIN_X && self.dx < 0.0 || self.x == MAX_X && self.dx > 0.0 {
-            self.dx = 0.0;
+        if pos == min_val && delta < 0.0 || pos == max_val && delta > 0.0 {
+            delta = 0.0;
         }
 
-        if self.y == MIN_Y && self.dy < 0.0 || self.y == MAX_Y && self.dy > 0.0 {
-            self.dy = 0.0;
-        }
+        (pos, delta)
     }
 }
 
@@ -283,6 +286,7 @@ impl Program for Daisy {
         self.dot.step();
 
         if self.dot.is_touching(&self.target) {
+            self.dot.grow();
             self.target = Target::new();
         }
     }
