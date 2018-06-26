@@ -1,6 +1,8 @@
 extern crate pxl;
+extern crate rand;
 
 use pxl::*;
+use rand::Rng;
 
 // ## Constants
 
@@ -26,9 +28,32 @@ trait Renderable {
     fn get_width(&self) -> i32;
     /// height of element
     fn get_height(&self) -> i32;
+
+    fn get_bounds(&self) -> Bounds {
+        Bounds {
+            left: self.get_x() - self.get_width() / 2,
+            right: self.get_x() + self.get_width() / 2,
+            top: self.get_y() - self.get_height() / 2,
+            bottom: self.get_y() + self.get_height() / 2,
+        }
+    }
+
+    fn is_touching(&self, r: &Renderable) -> bool {
+        self.get_bounds().is_touching(r.get_bounds())
+    }
 }
 
 // ## Structs
+
+struct Bounds { left: i32, right: i32, top: i32, bottom: i32 }
+
+impl Bounds {
+    fn is_touching(&self, b: Bounds) -> bool {
+        let bad_x = self.left > b.right || self.right < b.left;
+        let bad_y = self.top > b.bottom || self.bottom < b.top;
+        !bad_x && !bad_y
+    }
+}
 
 // Dot
 
@@ -59,17 +84,16 @@ impl Renderable for Dot {
 struct Target {
     x: i32,
     y: i32,
-    is_alive: bool,
-    death_steps: i8
 }
 
 impl Target {
-    fn new(_x: i32, _y: i32) -> Target {
+    fn new() -> Target {
+        let x = rand::thread_rng().gen_range(5, WIDTH - 5);
+        let y = rand::thread_rng().gen_range(5, HEIGHT - 5);
+
         Target {
-            x: _x,
-            y: _x,
-            is_alive: true,
-            death_steps: 10
+            x: x,
+            y: y,
         }
     }
 }
@@ -104,7 +128,7 @@ impl Program for Daisy {
             red: 0.5,
             green: 0.5,
             dot: Dot { x: WIDTH / 2, y: HEIGHT / 2 },
-            target: Target::new(0, 0)
+            target: Target::new()
         }
     }
 
@@ -129,8 +153,6 @@ impl Program for Daisy {
         };
         self.draw(pixels, color, &self.dot);
 
-        self.target.x = 20;
-        self.target.y = 20;
         self.draw(pixels, WHITE, &self.target);
     }
 
@@ -169,6 +191,10 @@ impl Program for Daisy {
 
         self.red = clampf(self.red + INCR_COLOR * (red_dir as f32), 0.0, 1.0);
         self.green = clampf(self.green + INCR_COLOR * (green_dir as f32), 0.0, 1.0);
+
+        if self.dot.is_touching(&self.target) {
+            self.target = Target::new();
+        }
     }
 }
 
@@ -192,10 +218,6 @@ impl Daisy {
                 }
             }
         }
-    }
-
-    fn is_collision(&self) -> bool {
-        
     }
 }
 

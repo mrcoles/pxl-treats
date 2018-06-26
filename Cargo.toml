@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Peter Coles <peter@mrcoles.com>"]
 
 [dependencies]
-pxl="0.0.8"
+pxl = "0.0.8"
+rand = "0.5.2"
