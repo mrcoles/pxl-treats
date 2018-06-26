@@ -504,7 +504,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pxl-jam"
+name = "pxl-treats"
 version = "0.1.0"
 dependencies = [
  "pxl 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
