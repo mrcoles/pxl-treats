@@ -11,7 +11,7 @@ const HEIGHT: i32 = 512;
 const DOT_WIDTH: i32 = 11;
 const DOT_HEIGHT: i32 = 11;
 
-const INCR_DOT: i32 = WIDTH / 50;
+const INCR_DOT: i32 = WIDTH / 40;
 const INCR_COLOR: f32 = 0.05;
 
 // const BLACK: Pixel = Pixel { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 };
@@ -60,7 +60,11 @@ impl Bounds {
 #[derive(Copy, Clone)]
 struct Dot {
     x: i32,
-    y: i32
+    y: i32,
+    y_dir: i32,
+    y_dir_ticks: i32,
+    x_dir: i32,
+    x_dir_ticks: i32,
 }
 
 impl Renderable for Dot {
@@ -75,6 +79,38 @@ impl Renderable for Dot {
     }
     fn get_height(&self) -> i32 {
         DOT_HEIGHT
+    }
+}
+
+impl Dot {
+    fn new(x: i32, y: i32) -> Dot {
+        Dot {
+            x: x,
+            y: y,
+            y_dir: 0,
+            y_dir_ticks: 0,
+            x_dir: 0,
+            x_dir_ticks: 0,
+        }
+    }
+
+    fn step(&mut self) {
+        if self.x_dir != 0 {
+            self.x_dir_ticks += 1;
+            self.x = clampi(
+                self.x + self.x_dir * INCR_DOT.min(1 + self.x_dir_ticks / 10),
+                5,
+                WIDTH - 5 - 1
+            );
+        }
+        if self.y_dir != 0 {
+            self.y_dir_ticks += 1;
+            self.y = clampi(
+                self.y + self.y_dir * INCR_DOT.min(1 + self.y_dir_ticks / 10),
+                5,
+                HEIGHT - 5 - 1
+            );
+        }
     }
 }
 
@@ -127,7 +163,7 @@ impl Program for Daisy {
         Daisy {
             red: 0.5,
             green: 0.5,
-            dot: Dot { x: WIDTH / 2, y: HEIGHT / 2 },
+            dot: Dot::new(WIDTH / 2, HEIGHT / 2),
             target: Target::new()
         }
     }
@@ -159,38 +195,63 @@ impl Program for Daisy {
     fn tick(&mut self, events: &[Event]) {
         let mut red_dir = 0;
         let mut green_dir = 0;
-        let mut dot_dx = 0;
-        let mut dot_dy = 0;
 
         for event in events {
-            if let Event::Button { state: ButtonState::Pressed, button } = event {
+            if let Event::Button { state, button } = event {
                 match button {
                     Button::Up => {
                         red_dir = 1;
-                        dot_dy = -1;
+
+                        if state == &ButtonState::Released && self.dot.y_dir == -1 {
+                            self.dot.y_dir = 0;
+                            self.dot.y_dir_ticks = 0;
+                        } else if state == &ButtonState::Pressed && self.dot.y_dir != -1 {
+                            self.dot.y_dir = -1;
+                            self.dot.y_dir_ticks = 0;
+                        }
                     }
                     Button::Down => {
                         red_dir = -1;
-                        dot_dy = 1;
+
+                        if state == &ButtonState::Released && self.dot.y_dir == 1 {
+                            self.dot.y_dir = 0;
+                            self.dot.y_dir_ticks = 0;
+                        } else if state == &ButtonState::Pressed && self.dot.y_dir != 1 {
+                            self.dot.y_dir = 1;
+                            self.dot.y_dir_ticks = 0;
+                        }
                     }
                     Button::Left => {
                         green_dir = -1;
-                        dot_dx = -1;
+
+                        if state == &ButtonState::Released && self.dot.x_dir == -1 {
+                            self.dot.x_dir = 0;
+                            self.dot.x_dir_ticks = 0;
+                        } else if state == &ButtonState::Pressed && self.dot.x_dir != -1 {
+                            self.dot.x_dir = -1;
+                            self.dot.x_dir_ticks = 0;
+                        }
                     }
                     Button::Right => {
                         green_dir = 1;
-                        dot_dx = 1;
+
+                        if state == &ButtonState::Released && self.dot.x_dir == 1 {
+                            self.dot.x_dir = 0;
+                            self.dot.x_dir_ticks = 0;
+                        } else if state == &ButtonState::Pressed && self.dot.x_dir != 1 {
+                            self.dot.x_dir = 1;
+                            self.dot.x_dir_ticks = 0;
+                        }
                     }
                     _ => {},
                 };
             }
         }
 
-        self.dot.x = (self.dot.x + dot_dx * INCR_DOT).max(0).min(WIDTH - 1);
-        self.dot.y = (self.dot.y + dot_dy * INCR_DOT).max(0).min(HEIGHT - 1);
-
         self.red = clampf(self.red + INCR_COLOR * (red_dir as f32), 0.0, 1.0);
         self.green = clampf(self.green + INCR_COLOR * (green_dir as f32), 0.0, 1.0);
+
+        self.dot.step();
 
         if self.dot.is_touching(&self.target) {
             self.target = Target::new();
@@ -224,6 +285,10 @@ impl Daisy {
 // ## helpers
 
 fn clampf(val: f32, min: f32, max: f32) -> f32 {
+    val.min(max).max(min)
+}
+
+fn clampi(val: i32, min: i32, max: i32) -> i32 {
     val.min(max).max(min)
 }
 
