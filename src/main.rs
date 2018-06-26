@@ -201,21 +201,30 @@ struct TreatsSynthesizer {
 }
 
 impl Synthesizer for TreatsSynthesizer {
-  fn synthesize(&mut self, mut samples_played: u64, samples: &mut [Sample]) {
-    for sample in samples {
-      let time = samples_played as f64 / SAMPLES_PER_SECOND as f64;
-      let s = (time * 440.0 * TAU).sin() as f32 * self.intensity;
-      sample.left = s;
-      sample.right = s;
-      samples_played += 1;
+    fn synthesize(&mut self, mut samples_played: u64, samples: &mut [Sample]) {
+        for sample in samples {
+            let time = samples_played as f64 / SAMPLES_PER_SECOND as f64;
+            let s1 = (time * 440.0 * TAU).sin().round() as f32 * self.intensity;
+
+            let freq2 = if ((samples_played as f64 / (5 * SAMPLES_PER_SECOND) as f64) as i32) % 2 == 0 {
+                659.255 // E
+            } else {
+                587.330 // D
+            };
+            let s2 = (time * freq2 * TAU).sin().round() as f32 * self.intensity;
+
+            sample.left = s1;
+            sample.right = s2;
+            samples_played += 1;
+        }
     }
-  }
 }
 
 // Treats
 
 struct Treats {
     synthesizer: Arc<Mutex<TreatsSynthesizer>>,
+    synth_counter: i32,
     red: f32,
     green: f32,
     dot: Dot,
@@ -225,7 +234,8 @@ struct Treats {
 impl Program for Treats {
     fn new() -> Treats {
         Treats {
-            synthesizer: Arc::new(Mutex::new(TreatsSynthesizer { intensity: 100.0 })),
+            synthesizer: Arc::new(Mutex::new(TreatsSynthesizer { intensity: 0.0 })),
+            synth_counter: 0,
             red: 0.5,
             green: 0.5,
             dot: Dot::new(WIDTH / 2, HEIGHT / 2),
@@ -310,7 +320,16 @@ impl Program for Treats {
 
         self.dot.step();
 
+        if self.synth_counter > 0 {
+            self.synth_counter -= 1;
+            if self.synth_counter == 0 {
+                self.synthesizer.lock().unwrap().intensity = 0.0;
+            }
+        }
+
         if self.dot.is_touching(&self.target) {
+            self.synthesizer.lock().unwrap().intensity = 80.0;
+            self.synth_counter = 20;
             self.dot.grow();
             self.target = Target::new();
         }
