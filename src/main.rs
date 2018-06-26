@@ -3,6 +3,9 @@ extern crate rand;
 
 use pxl::*;
 use rand::Rng;
+use std::{
+  f64, sync::{Arc, Mutex},
+};
 
 // ## Constants
 
@@ -26,6 +29,8 @@ const INCR_COLOR: f32 = 0.05;
 
 // const BLACK: Pixel = Pixel { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 };
 const WHITE: Pixel = Pixel { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 };
+
+const TAU: f64 = f64::consts::PI * 2.0;
 
 // ## Traits
 
@@ -189,9 +194,28 @@ impl Renderable for Target {
     }
 }
 
+// Synthesizer
+
+struct TreatsSynthesizer {
+    intensity: f32,
+}
+
+impl Synthesizer for TreatsSynthesizer {
+  fn synthesize(&mut self, mut samples_played: u64, samples: &mut [Sample]) {
+    for sample in samples {
+      let time = samples_played as f64 / SAMPLES_PER_SECOND as f64;
+      let s = (time * 440.0 * TAU).sin() as f32 * self.intensity;
+      sample.left = s;
+      sample.right = s;
+      samples_played += 1;
+    }
+  }
+}
+
 // Treats
 
 struct Treats {
+    synthesizer: Arc<Mutex<TreatsSynthesizer>>,
     red: f32,
     green: f32,
     dot: Dot,
@@ -201,6 +225,7 @@ struct Treats {
 impl Program for Treats {
     fn new() -> Treats {
         Treats {
+            synthesizer: Arc::new(Mutex::new(TreatsSynthesizer { intensity: 100.0 })),
             red: 0.5,
             green: 0.5,
             dot: Dot::new(WIDTH / 2, HEIGHT / 2),
@@ -289,6 +314,10 @@ impl Program for Treats {
             self.dot.grow();
             self.target = Target::new();
         }
+    }
+
+    fn synthesizer(&self) -> Option<Arc<Mutex<Synthesizer>>> {
+        Some(self.synthesizer.clone())
     }
 }
 
