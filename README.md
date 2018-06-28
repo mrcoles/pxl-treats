@@ -1,6 +1,6 @@
 # PXL-TREATS
 
-Feed treats to the pixel, but what ouch this world is slippery!
+Feed treats to the pixel, but watch out this world is slippery!
 
 Built in Rust, run via: `cargo run`
 
